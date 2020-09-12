@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Document</title>
+   <script src="pixi.min.js"></script>
+   <script src="bump.js"></script>
+   <script>
+let app;
+let player;
+let enemy;
+let boxes = [];
+let keys = {};
+let keysDiv;
+let speed = 3;
+let b = new Bump(PIXI);
+   
+window.onload = function() {
+   app = new PIXI.Application({
+      width: 1024,
+      height: 768,
+      backgroundColor: 0xAAAAAA
+   });
+   document.body.appendChild(app.view);
+
+   //dragable baddie
+   const texture = PIXI.Texture.from('images/bad.png');
+   // Scale mode for pixelation
+   texture.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+
+   for (let i = 0; i < 10; i++) {
+      createBox(Math.floor(Math.random() * app.screen.width), Math.floor(Math.random() * app.screen.height));      
+   }           
+
+   function createBox(x, y) {
+      const Box = new PIXI.Sprite.from(texture);
+      Box.interactive = true;  
+      Box.buttonMode = true;
+      Box.anchor.set(0.5);
+      // scale
+      Box.scale.set(1);
+      // pointer event
+      Box.on('pointerdown', onDragStart);
+      Box.on('pointerup', onDragEnd);
+      Box.on('pointerupoutside', onDragEnd);
+      Box.on('pointermove', onDragMove);
+      Box.x = x;
+      Box.y = y;
+
+      boxes.push(Box);
+      // add it to the stage
+      app.stage.addChild(Box);    
+   }
+   
+
+   function onDragMove() {
+      if (this.dragging) {
+         const newPosition = this.data.getLocalPosition(this.parent);
+         this.x = newPosition.x;
+         this.y = newPosition.y;
+      }
+   }
+
+   function onDragStart(event) {
+      // store a reference to the data
+      // the reason for this is because of multitouch
+      // we want to track the movement of this particular touch
+      this.data = event.data;
+      this.alpha = 0.5;
+      this.dragging = true;
+   }
+
+   function onDragEnd() {
+      this.alpha = 1;
+      this.dragging = false;
+      this.data = null;
+   }   
+      
+   //player object
+   player = new PIXI.Sprite.from("images/Square.png");
+   player.anchor.set(0.5);
+   player.x = app.view.height - 750;
+   player.y = app.view.height / 2; 
+   app.stage.addChild(player);
+
+   //turret    
+   enemy = new PIXI.Sprite.from("images/turret.png");
+   enemy.anchor.set(0.5);
+   enemy.x = app.view.height  + 210;
+   enemy.y = app.view.height  / 2; 
+   app.stage.addChild(enemy);
+
+   app.ticker.add(rotateEnemy);
+   app.ticker.add(gameLoop);
+
+   // (delta) => { enemy.rotation += .06 * delta; }
+   function rotateEnemy(delta) { 
+      enemy.rotation += .06 * delta;
+   }
+}    
+
+//keyboard event handlers
+window.addEventListener("keydown", keysDown);
+window.addEventListener("keyup",keysUp);
+
+keysDiv = document.querySelector("#keys");
+
+function keysDown(event){
+   console.log(event.keyCode);
+   keys[event.keyCode] = true;
+}
+
+function keysUp(e){
+   console.log(e.keyCode);
+   keys[e.keyCode] = false;
+} 
+
+function gameLoop(){                                  
+   // W
+   if(keys["87"] === true){
+      player.y -= speed;
+   }
+
+   // A
+   if(keys["65"]){
+      player.x -= speed;
+   }
+
+   // S
+   if(keys["83"]){
+      player.y += speed;
+   }
+
+   // D
+   if(keys["68"]){
+      player.x += speed;
+   }
+
+   if (b.hit(player,enemy,true)) {
+      console.log("hit");          
+   }
+
+   boxes.forEach((box) => {
+      if (b.hit(player,box,true)) {
+         console.log("PLAYER BOX hit");          
+      }  
+   });
+}         
+   </script>
+</head>
+<body>
+<div id="keys"></div>
+<div id="gmaeDiv"></div>
+</body>
+</html>
